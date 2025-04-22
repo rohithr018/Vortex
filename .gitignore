@@ -1,0 +1,22 @@
+# Node modules
+node_modules/
+**/node_modules/
+
+# Build output
+/dist
+/dist-ssr
+**/dist/
+**/dist-ssr/
+
+# Environment variables files
+.env
+.env.*
+
+# Package manager lock files (optional, ignore if you want to commit these)
+yarn.lock
+pnpm-lock.yaml
+
+# Ignore any other IDE/Editor-specific files
+.idea/
+.vscode/
+
