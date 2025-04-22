@@ -9,8 +9,6 @@ import gitRoutes from './routes/git.routes.js';
 dotenv.config();
 
 const app = express();
-let x = 12
-let unused = 2
 // Middleware
 app.use(express.json()); // Parse incoming JSON requests
 app.use(cors()); // Enable CORS for cross-origin requests (optional, but useful for frontend-backend communication)
