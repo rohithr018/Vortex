@@ -6,3 +6,7 @@ profile:
 linter: jetbrains/qodana-js:2024.3
 
 fixesStrategy: apply
+
+bootstrap: |
+  cd frontend
+  npm ci
