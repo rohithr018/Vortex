@@ -13,6 +13,7 @@
   "type": "module",
   "description": "",
   "dependencies": {
+    "@clickhouse/client": "^1.11.1",
     "@octokit/rest": "^21.1.1",
     "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",

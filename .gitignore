@@ -19,4 +19,5 @@ pnpm-lock.yaml
 # Ignore any other IDE/Editor-specific files
 .idea/
 .vscode/
+**/backups/
 

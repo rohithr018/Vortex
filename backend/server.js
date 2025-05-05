@@ -1,21 +1,23 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import cors from 'cors'; // Optional: to allow cross-origin requests
+import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
 import gitRoutes from './routes/git.routes.js';
+import logRoutes from './routes/log.routes.js';
 
-// Load environment variables from .env file
 dotenv.config();
 
 const app = express();
+
 // Middleware
-app.use(express.json()); // Parse incoming JSON requests
-app.use(cors()); // Enable CORS for cross-origin requests (optional, but useful for frontend-backend communication)
+app.use(express.json());
+app.use(cors());
 
 // Routes
-app.use('/api/auth', authRoutes); // Auth routes (login, register)
+app.use('/api/auth', authRoutes);
 app.use('/api/github', gitRoutes);
+app.use('/api/logs', logRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
@@ -27,5 +29,5 @@ mongoose.connect(process.env.MONGO_URI)
     })
     .catch(err => {
         console.error('MongoDB connection error:', err);
-        process.exit(1); // Exit the process if DB connection fails
+        process.exit(1);
     });
