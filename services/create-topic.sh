@@ -1,9 +1,9 @@
 #!/bin/bash
 
 TOPIC_NAME=$1
-NUM_PARTITIONS=5
+NUM_PARTITIONS=1
 REPLICATION_FACTOR=1
-BROKER="kafka-broker-1:19092"
+BROKER="kafka-broker:19092"
 KAFKA_BIN_DIR="/opt/kafka/bin"  # Set the Kafka binary directory
 
 # Check if topic exists
