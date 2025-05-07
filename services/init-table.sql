@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS logs.log_queue (
 SETTINGS kafka_skip_broken_messages = 1;
 
 CREATE TABLE IF NOT EXISTS logs.build_logs (
-    created_at DateTime64(3, 'UTC'),
+    created_at DateTime64(3, 'Asia/Kolkata'),
     log_uuid UUID DEFAULT generateUUIDv4(),
     deployment_id String,
     log_message String,
@@ -19,7 +19,7 @@ ORDER BY created_at;
 CREATE MATERIALIZED VIEW IF NOT EXISTS logs.kafka_queue TO logs.build_logs
 AS 
 SELECT 
-    now() AS created_at,
+    toTimezone(now(), 'Asia/Kolkata') AS created_at,
     generateUUIDv4() AS log_uuid,
     deployment_id,
     log_message,
