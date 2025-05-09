@@ -5,6 +5,10 @@ import { Kafka } from 'kafkajs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import dotenv from 'dotenv';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import mime from 'mime-types';
+
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -14,14 +18,24 @@ const DEPLOYMENT_ID = process.env.DEPLOYMENT_ID;
 const KAFKA_BROKER = process.env.KAFKA_BROKER;
 const KAFKA_TOPIC = process.env.KAFKA_TOPIC;
 const REPO = process.env.REPO;
+const REGION = process.env.REGION;
+const ACCESS_KEY_ID = process.env.ACCESS_KEY_ID;
+const SECRET_ACCESS_KEY = process.env.SECRET_ACCESS_KEY;
+const S3_BUCKET = process.env.S3_BUCKET;
 
-console.log(KAFKA_BROKER);
 const kafka = new Kafka({
     clientId: 'deployment',
     brokers: [KAFKA_BROKER]
 });
 
 const producer = kafka.producer();
+const s3Client = new S3Client({
+    region: REGION,
+    credentials: {
+        accessKeyId: ACCESS_KEY_ID,
+        secretAccessKey: SECRET_ACCESS_KEY
+    }
+});
 
 async function publishLog(logMessage, logLevel = 'info') {
     await producer.send({
@@ -91,26 +105,113 @@ function getBuildCommand(strategy, projectPath) {
     }
 }
 
+async function uploadFileToS3(filePath, relativePath, folderToUpload) {
+    try {
+        const fileStream = fs.createReadStream(filePath);
+
+        // Handle stream errors
+        fileStream.on('error', (err) => {
+            throw new Error(`File stream error: ${err.message}`);
+        });
+
+        const key = `__outputs/${DEPLOYMENT_ID}/${path.relative(folderToUpload, filePath)}`;
+
+        const command = new PutObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: key,
+            Body: fileStream,
+            ContentType: mime.lookup(filePath) || 'application/octet-stream'
+        });
+
+        await s3Client.send(command);
+        return { success: true, key };
+    } catch (err) {
+        return {
+            success: false,
+            error: err.message,
+            filePath: relativePath
+        };
+    }
+}
+
+
+async function uploadFolderToS3(folderToUpload) {
+    try {
+        const allFiles = [];
+
+        // Recursively get all files in directory
+        function walkDir(currentPath) {
+            const files = fs.readdirSync(currentPath);
+            for (const file of files) {
+                const fullPath = path.join(currentPath, file);
+                if (fs.lstatSync(fullPath).isDirectory()) {
+                    walkDir(fullPath);
+                } else {
+                    allFiles.push(fullPath);
+                }
+            }
+        }
+
+        walkDir(folderToUpload);
+
+        await publishLog(`Found ${allFiles.length} files to upload`);
+
+        const uploadResults = [];
+        const batchSize = 5; // Upload 5 files at a time
+        let uploadedCount = 0;
+
+        for (let i = 0; i < allFiles.length; i += batchSize) {
+            const batch = allFiles.slice(i, i + batchSize);
+
+            const batchResults = await Promise.all(
+                batch.map(filePath => {
+                    const relativePath = path.relative(folderToUpload, filePath);
+                    return uploadFileToS3(filePath, relativePath, folderToUpload);
+                })
+            );
+
+            uploadResults.push(...batchResults);
+            uploadedCount += batchResults.length;
+
+            await publishLog(`Uploaded ${uploadedCount}/${allFiles.length} files`);
+        }
+
+        // Check for failures
+        const failures = uploadResults.filter(result => !result.success);
+        if (failures.length > 0) {
+            await publishLog(`Failed to upload ${failures.length} files`, 'ERROR');
+            for (const failure of failures) {
+                await publishLog(`Failed to upload ${failure.filePath}: ${failure.error}`, 'ERROR');
+            }
+            return false;
+        }
+
+        return true;
+    } catch (err) {
+        await publishLog(`Folder upload failed: ${err.message}`, 'ERROR');
+        return false;
+    }
+}
+
 async function init() {
     await producer.connect();
     console.log('Executing script.js');
-    await publishLog('🚀 Build process started...', 'INFO');
-    await publishLog(`📁 Cloning project into /home/app/${REPO}...`, 'INFO');
+    await publishLog('Build process started...', 'INFO');
 
     const projectPath = `/home/app/${REPO}`;
     const strategy = detectBuildStrategy(projectPath);
-    await publishLog(`🔍 Detected build strategy: ${strategy}`, 'INFO');
+    await publishLog(`Detected build strategy: ${strategy}`, 'INFO');
 
-    await publishLog('📦 Installing dependencies and preparing build...', 'INFO');
+    await publishLog('Installing dependencies and preparing build...', 'INFO');
     const buildCommand = getBuildCommand(strategy, projectPath);
 
     // console.log(`Detected build strategy: ${strategy}`);
     // console.log(`Running build command: ${buildCommand}`);
-    await publishLog(`🛠️ Running build command: ${buildCommand}`, 'INFO');
+    await publishLog(`Running build command: ${buildCommand}`, 'INFO');
 
     if (!buildCommand) {
         // console.log('No build command found. Skipping build.');
-        await publishLog('⚠️ No build command detected. Skipping build.', 'WARNING');
+        await publishLog(' No build command detected. Skipping build.', 'WARNING');
         process.exit(0);
     }
 
@@ -119,19 +220,19 @@ async function init() {
     p.stdout.on('data', async (data) => {
         const logData = data.toString();
         // console.log(logData);
-        await publishLog(`📄 ${logData}`, 'INFO');
+        await publishLog(`${logData}`, 'INFO');
     });
 
     p.stderr?.on('data', async (data) => {
         const logError = data.toString();
         // console.error('Error: ', logError);
-        await publishLog(`❌ ${logError}`, 'ERROR');
+        await publishLog(`${logError}`, 'ERROR');
     });
 
     p.on('close', async (code) => {
         // console.log('Build Complete');
-        await publishLog(`✅ Build process exited with code ${code}`, 'INFO');
-        await publishLog('🔎 Analyzing build output directories...', 'INFO');
+        await publishLog(`Build process exited with code ${code}`, 'INFO');
+        await publishLog('Analyzing build output directories...', 'INFO');
 
         const distFolderPath = path.join(projectPath, 'dist');
         const buildFolderPath = path.join(projectPath, 'build');
@@ -140,29 +241,31 @@ async function init() {
         let folderToUpload = null;
         if (fs.existsSync(distFolderPath)) {
             folderToUpload = distFolderPath;
-            await publishLog('📂 Found "dist" folder. Using it as deployment output.', 'INFO');
+            await publishLog('Found "dist" folder. Using it as deployment output.', 'INFO');
         } else if (fs.existsSync(buildFolderPath)) {
             folderToUpload = buildFolderPath;
-            await publishLog('📂 Found "build" folder. Using it as deployment output.', 'INFO');
+            await publishLog('Found "build" folder. Using it as deployment output.', 'INFO');
         } else if (fs.existsSync(targetFolderPath)) {
             folderToUpload = targetFolderPath;
-            await publishLog('📂 Found "target" folder. Using it as deployment output.', 'INFO');
+            await publishLog('Found "target" folder. Using it as deployment output.', 'INFO');
         }
 
         if (!folderToUpload) {
             // console.error('No dist, build, or target folder found');
-            await publishLog('🚫 No dist, build, or target folder found. Cannot proceed with deployment.', 'ERROR');
+            await publishLog('No dist, build, or target folder found. Cannot proceed with deployment.', 'ERROR');
             process.exit(1);
         }
 
         const folderContents = fs.readdirSync(folderToUpload, { recursive: true });
-        await publishLog(`📦 Build artifacts ready. ${folderContents.length} items to upload.`, 'INFO');
+        await publishLog(`Build artifacts ready. ${folderContents.length} items to upload.`, 'INFO');
+        const uploadSuccess = await uploadFolderToS3(folderToUpload);
 
-        // console.log("Skipping upload to S3...");
-        await publishLog('📤 Skipping upload to S3 (upload handler not implemented).', 'INFO');
+        if (!uploadSuccess) {
+            await publishLog('Deployment failed due to upload errors', 'ERROR');
+            process.exit(1);
+        }
 
-        console.log("Done...");
-        await publishLog('🎉 Deployment script completed successfully.', 'INFO');
+        await publishLog('Deployment completed successfully!', 'INFO');
         process.exit(0);
     });
 }
