@@ -22,6 +22,7 @@ const REGION = process.env.REGION;
 const ACCESS_KEY_ID = process.env.ACCESS_KEY_ID;
 const SECRET_ACCESS_KEY = process.env.SECRET_ACCESS_KEY;
 const S3_BUCKET = process.env.S3_BUCKET;
+const BRANCH = process.env.BRANCH
 
 const kafka = new Kafka({
     clientId: 'deployment',
@@ -100,7 +101,6 @@ function getBuildCommand(strategy, projectPath) {
 
         return '';
     } catch (err) {
-        console.error("Error generating build command:", err);
         return '';
     }
 }
@@ -109,7 +109,6 @@ async function uploadFileToS3(filePath, relativePath, folderToUpload) {
     try {
         const fileStream = fs.createReadStream(filePath);
 
-        // Handle stream errors
         fileStream.on('error', (err) => {
             throw new Error(`File stream error: ${err.message}`);
         });
@@ -157,11 +156,17 @@ async function uploadFolderToS3(folderToUpload) {
         await publishLog(`Found ${allFiles.length} files to upload`);
 
         const uploadResults = [];
-        const batchSize = 5; // Upload 5 files at a time
+        const batchSize = 5;
         let uploadedCount = 0;
 
         for (let i = 0; i < allFiles.length; i += batchSize) {
             const batch = allFiles.slice(i, i + batchSize);
+            const batchRelativePaths = batch.map(filePath => path.relative(folderToUpload, filePath));
+
+            await publishLog(`Uploading batch ${Math.floor(i / batchSize) + 1}:`);
+            for (const file of batchRelativePaths) {
+                await publishLog(` - ${file}`);
+            }
 
             const batchResults = await Promise.all(
                 batch.map(filePath => {
@@ -176,7 +181,6 @@ async function uploadFolderToS3(folderToUpload) {
             await publishLog(`Uploaded ${uploadedCount}/${allFiles.length} files`);
         }
 
-        // Check for failures
         const failures = uploadResults.filter(result => !result.success);
         if (failures.length > 0) {
             await publishLog(`Failed to upload ${failures.length} files`, 'ERROR');
@@ -195,7 +199,10 @@ async function uploadFolderToS3(folderToUpload) {
 
 async function init() {
     await producer.connect();
-    console.log('Executing script.js');
+    await publishLog('Deployment process started...', 'INFO');
+    await publishLog(`Deployment ID: ${DEPLOYMENT_ID}`, 'INFO');
+    await publishLog(`Cloning Project Into /home/app/${REPO}...`, 'INFO');
+    await publishLog(`Checking out to ${BRANCH}`, 'INFO');
     await publishLog('Build process started...', 'INFO');
 
     const projectPath = `/home/app/${REPO}`;
@@ -205,13 +212,10 @@ async function init() {
     await publishLog('Installing dependencies and preparing build...', 'INFO');
     const buildCommand = getBuildCommand(strategy, projectPath);
 
-    // console.log(`Detected build strategy: ${strategy}`);
-    // console.log(`Running build command: ${buildCommand}`);
     await publishLog(`Running build command: ${buildCommand}`, 'INFO');
 
     if (!buildCommand) {
-        // console.log('No build command found. Skipping build.');
-        await publishLog(' No build command detected. Skipping build.', 'WARNING');
+        await publishLog('No build command detected. Skipping build.', 'WARN');
         process.exit(0);
     }
 
@@ -219,18 +223,15 @@ async function init() {
 
     p.stdout.on('data', async (data) => {
         const logData = data.toString();
-        // console.log(logData);
         await publishLog(`${logData}`, 'INFO');
     });
 
     p.stderr?.on('data', async (data) => {
         const logError = data.toString();
-        // console.error('Error: ', logError);
         await publishLog(`${logError}`, 'ERROR');
     });
 
     p.on('close', async (code) => {
-        // console.log('Build Complete');
         await publishLog(`Build process exited with code ${code}`, 'INFO');
         await publishLog('Analyzing build output directories...', 'INFO');
 
@@ -251,8 +252,7 @@ async function init() {
         }
 
         if (!folderToUpload) {
-            // console.error('No dist, build, or target folder found');
-            await publishLog('No dist, build, or target folder found. Cannot proceed with deployment.', 'ERROR');
+            await publishLog('No dist, build, or target folder found. Exiting Deployment.', 'ERROR');
             process.exit(1);
         }
 
