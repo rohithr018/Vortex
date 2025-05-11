@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  kafka-controller:
+    image: apache/kafka:3.8.1
+    container_name: kafka-controller
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: controller
+      KAFKA_LISTENERS: CONTROLLER://0.0.0.0:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller:9093,2@kafka-broker:9094
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - controller_data:/var/lib/kafka/data
+    networks:
+      - deployment
+    restart: unless-stopped
+
+  kafka-broker:
+    image: apache/kafka:3.8.1
+    container_name: kafka-broker
+    ports:
+      - "29092:9092"  # PLAINTEXT_HOST (for host machine)
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_LISTENERS: 'CONTROLLER://0.0.0.0:9094,PLAINTEXT://0.0.0.0:19092,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka-broker:19092,PLAINTEXT_HOST://192.168.59.193:29092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller:9093,2@kafka-broker:9094
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+    volumes:
+      - broker_data:/var/lib/kafka/data
+    depends_on:
+      - kafka-controller
+    networks:
+      - deployment
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/19092'"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  topic-init:
+    image: apache/kafka:3.8.1
+    container_name: kafka-topic-init
+    depends_on:
+      kafka-broker:
+        condition: service_healthy
+    volumes:
+      - ./create-topic.sh:/create-topic.sh:ro
+    entrypoint: ["/bin/bash", "/create-topic.sh"]
+    command: ["build-logs"]
+    networks:
+      - deployment
+    restart: "no"
+
+  console:
+    image: docker.redpanda.com/redpandadata/console:v2.5.2
+    container_name: kafka-console
+    ports:
+      - "8080:8080"
+    entrypoint: /bin/sh
+    command: >
+      -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: >
+        kafka:
+          brokers: ["kafka-broker:19092"]
+          schemaRegistry:
+            enabled: false
+        redpanda:
+          adminApi:
+            enabled: false
+            urls: ["http://kafka-broker:9644"]
+    networks:
+      - deployment
+    depends_on:
+      kafka-broker:
+        condition: service_healthy
+    restart: always
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.4
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - ./init-table.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: default
+      CLICKHOUSE_DB: logs
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - deployment
+    depends_on:
+      - kafka-broker
+    restart: unless-stopped
+
+volumes:
+  controller_data:
+  broker_data:
+
+networks:
+  deployment:
