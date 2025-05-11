@@ -197,6 +197,15 @@ async function uploadFolderToS3(folderToUpload) {
     }
 }
 
+async function cleanupFolder(folderPath) {
+    try {
+        fs.rmSync(folderPath, { recursive: true, force: true });
+        await publishLog(`Cleaned up local build folder: ${folderPath}`, 'INFO');
+    } catch (err) {
+        await publishLog(`Failed to cleanup folder ${folderPath}: ${err.message}`, 'ERROR');
+    }
+}
+
 async function init() {
     await producer.connect();
     await publishLog('Deployment process started...', 'INFO');
@@ -265,6 +274,7 @@ async function init() {
             process.exit(1);
         }
 
+        await cleanupFolder(folderToUpload);
         await publishLog('Deployment completed successfully!', 'INFO');
         process.exit(0);
     });

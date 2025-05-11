@@ -14,7 +14,7 @@ export const getLogsByDeploymentId = async (req, res) => {
             SELECT log_uuid,deployment_id, log_message, log_level, created_at AS timestamp
             FROM build_logs
             WHERE deployment_id = '${id}'
-            ORDER BY created_at DESC
+            ORDER BY created_at ASC
 
         `;
 
