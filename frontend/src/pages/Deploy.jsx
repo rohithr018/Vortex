@@ -71,6 +71,32 @@ const Deploy = () => {
         };
     }, [username, repo]);
 
+    useEffect(() => {
+        const saveDeploymentData = async () => {
+            if (isDeployed && deploymentId) {
+                try {
+                    const deploymentUrl = `https://deployment-build-artifacts-bucket.s3.us-east-1.amazonaws.com/__outputs/${deploymentId}/index.html`;
+                    await axios.post('http://localhost:5000/api/deploy/create', {
+                        deploymentId,
+                        repoName: repo,
+                        branch: selectedBranch,
+                        username,
+                        logs: logs.map(log => ({
+                            message: log.log_message,
+                            level: log.log_level,
+                            timestamp: log.timestamp
+                        })),
+                        url: deploymentUrl
+                    });
+                } catch (error) {
+                    console.error('Failed to save deployment data:', error);
+                }
+            }
+        };
+
+        saveDeploymentData();
+    }, [isDeployed]);
+
     const handleAddEnvVar = () => {
         setEnvVars([...envVars, { key: '', value: '', isEditing: true }]);
         scrollToEnvVarBottom();
