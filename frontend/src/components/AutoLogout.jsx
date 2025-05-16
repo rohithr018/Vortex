@@ -15,7 +15,6 @@ const AutoLogout = () => {
             const timeElapsed = currentTime - loginTime;
 
             if (timeElapsed > AUTO_LOGOUT_TIME) {
-                // If 24 hours have passed, log the user out
                 dispatch(logout());
             } else {
                 const timeout = setTimeout(() => {

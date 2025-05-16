@@ -1,11 +1,9 @@
-// controllers/repoController.js
-
 import { Octokit } from '@octokit/rest';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const octokit = new Octokit({
-    auth: process.env.GITHUB_TOKEN, // Optional, but recommended
+    auth: process.env.GITHUB_TOKEN,
 });
 
 // Fetch Repositories of a User

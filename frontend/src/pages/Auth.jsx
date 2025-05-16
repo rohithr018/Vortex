@@ -4,12 +4,15 @@ import { FiChevronLeft, FiChevronRight, FiLogIn, FiUserPlus, FiEye, FiEyeOff } f
 import { useDispatch, useSelector } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../redux/user/UserSlice';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const Auth = () => {
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const { loading } = useSelector((state) => state.user);
 
     // State management
-    const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullname, setFullname] = useState('');
@@ -20,9 +23,8 @@ const Auth = () => {
     const [localLoading, setLocalLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    const dispatch = useDispatch();
-    const { loading } = useSelector((state) => state.user);
-    const navigate = useNavigate();
+    const mode = searchParams.get('mode');
+    const isLogin = mode !== 'register';
 
     {/*Common classes*/ }
     const inputClass = 'w-full px-4 py-3 rounded-lg bg-black border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-400 text-sm';
@@ -45,14 +47,14 @@ const Auth = () => {
     };
     {/*Login <-> Register*/ }
     const toggleMode = () => {
-        setIsLogin((prev) => !prev);
+        const newMode = isLogin ? 'register' : 'login';
+        navigate(`/auth?mode=${newMode}`);
         resetForm();
     };
 
     {/*Validate Input feilds*/ }
     const validateEmail = (email) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
     const validatePassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,14}$/.test(password);
-    const validateGithubProfile = (url) => /^(https:\/\/github\.com\/[a-zA-Z0-9_-]+)$/.test(url);
 
     const resetForm = () => {
         setEmail('');
@@ -62,6 +64,7 @@ const Auth = () => {
         setGithubProfile('');
         setError(null);
         setSuccess(null);
+        setShowPassword(false);
     };
 
     {/*Login Function*/ }
@@ -122,11 +125,44 @@ const Auth = () => {
             setLocalLoading(false);
         }
     };
+    const titleAnimation = () => (
+        <div className="relative inline-block">
+            {/* Animated background glow */}
+            <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-2xl opacity-30"
+                animate={{
+                    opacity: [0.2, 0.4, 0.2],
+                }}
+                transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                }}
+            />
+
+            {/* Main text */}
+            <h1 className="text-6xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent tracking-tighter relative z-10 animate-gradient-float">
+                Vortex
+            </h1>
+
+            {/* Subtle floating animation */}
+            <motion.div
+                className="absolute -bottom-4 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent"
+                animate={{
+                    opacity: [0.5, 1, 0.5],
+                    x: [-20, 20, -20]
+                }}
+                transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                }}
+            />
+        </div>
+
+    )
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#0d0d0d] p-4">
             <div className="w-full max-w-5xl bg-[#0e0e0e] rounded-3xl shadow-2xl border border-gray-800 overflow-hidden flex flex-col md:flex-row transition-all duration-700" style={{ minHeight: '550px' }}>
-
                 {/* Left Panel: Login or Register */}
                 <div className="w-full md:w-1/2 flex items-center justify-center p-5 text-white bg-[#111111]">
                     <AnimatePresence mode="wait">
@@ -212,16 +248,16 @@ const Auth = () => {
 
                             ) :
                             (
-                                <motion.img
-                                    key="login-img"
+                                <motion.div
+                                    className="relative z-20"
                                     initial={leftVariants.initial}
                                     animate={leftVariants.animate}
                                     exit={rightVariants.exit}
                                     transition={{ duration: 0.75 }}
-                                    src="https://placehold.co/400x400?text=Login"
-                                    alt="Login Illustration"
-                                    className="rounded-lg max-h-100 object-cover shadow-xl border border-gray-700"
-                                />
+                                >
+                                    {titleAnimation()}
+
+                                </motion.div>
                             )
                         }
                     </AnimatePresence>
@@ -369,16 +405,15 @@ const Auth = () => {
                                 </motion.div>
                             ) :
                             (
-                                <motion.img
-                                    key="register-img"
+                                <motion.div
+                                    className="relative z-20"
                                     initial={rightVariants.initial}
                                     animate={rightVariants.animate}
                                     exit={leftVariants.exit}
                                     transition={{ duration: 0.75 }}
-                                    src="https://placehold.co/400x400?text=Register"
-                                    alt="Register Illustration"
-                                    className="rounded-lg max-h-100 object-cover shadow-xl border border-gray-700"
-                                />
+                                >
+                                    {titleAnimation()}
+                                </motion.div>
                             )
                         }
                     </AnimatePresence>

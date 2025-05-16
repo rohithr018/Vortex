@@ -11,28 +11,54 @@ const Home = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [profileError, setProfileError] = useState("");
+    const [deploymentStatus, setDeploymentStatus] = useState({});
 
     const navigate = useNavigate();
     const { user } = useSelector((state) => state.user);
     const username = user?.githubProfile;
 
     useEffect(() => {
-        const fetchRepos = async () => {
+        const fetchReposAndDeployments = async () => {
             if (!username) return;
             setLoading(true);
             setError("");
             try {
-                const response = await axios.post("http://localhost:5000/api/github/repos", { githubProfile: username });
-                setRepositories(response.data);
+                // Fetch user repositories
+                const reposResponse = await axios.post("http://localhost:5000/api/github/repos", {
+                    githubProfile: username
+                });
+                const repos = reposResponse.data;
+                setRepositories(repos);
+
+                // Check deployment status for all repositories
+                const statusPromises = repos.map(async (repo) => {
+                    try {
+                        const res = await axios.get(
+                            `http://localhost:5000/api/deploy/get?repoName=${repo.name}&username=${username}`
+                        );
+                        return { repoName: repo.name, deployed: res.data.exists === true };
+                    } catch (error) {
+                        console.error(`Error checking deployment for ${repo.name}:`, error);
+                        return { repoName: repo.name, deployed: false };
+                    }
+                });
+
+                const statusResults = await Promise.all(statusPromises);
+                const newStatus = statusResults.reduce((acc, curr) => {
+                    acc[curr.repoName] = curr.deployed;
+                    return acc;
+                }, {});
+
+                setDeploymentStatus(newStatus);
             } catch (error) {
                 console.error("Error fetching repositories:", error);
-                setError("Failed to load repositories. Please try again.");
+                setError("Failed to load repository data");
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchRepos();
+        fetchReposAndDeployments();
     }, [username]);
 
     const filteredRepos = repositories.filter((repo) =>
@@ -66,7 +92,6 @@ const Home = () => {
         try {
             const response = await axios.get(`https://api.github.com/users/${owner}`);
             if (response.status === 200) {
-                // Navigate to /deploy/username/repo with extracted username and repo
                 navigate(`/deploy/${owner}/${repo}`);
             }
         } catch (err) {
@@ -117,12 +142,18 @@ const Home = () => {
                                             className="flex justify-between items-center px-2 py-3 hover:bg-[#222] transition"
                                         >
                                             <div className="text-white font-medium text-sm truncate">{repo.name}</div>
-                                            <button
-                                                onClick={() => handleImportRepo(repo.name)}
-                                                className="bg-white text-black font-medium px-3 py-1.5 text-sm rounded-md hover:bg-gray-400 transition"
-                                            >
-                                                Import
-                                            </button>
+                                            {deploymentStatus[repo.name] ? (
+                                                <span className="text-green-500 text-sm px-3 py-1.5">
+                                                    Deployed
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleImportRepo(repo.name)}
+                                                    className="bg-white text-black font-medium px-3 py-1.5 text-sm rounded-md hover:bg-gray-400 transition"
+                                                >
+                                                    Import
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

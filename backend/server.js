@@ -5,7 +5,8 @@ import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
 import gitRoutes from './routes/git.routes.js';
 import logRoutes from './routes/log.routes.js';
-import deployRoutes from './routes/deploy.route.js'
+import deployRoutes from './routes/deploy.route.js';
+import userRoutes from './routes/user.routes.js';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/github', gitRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/deploy', deployRoutes);
+app.use('/api/user', userRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)

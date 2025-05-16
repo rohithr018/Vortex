@@ -4,7 +4,7 @@ module.exports = {
         '^.+\\.[tj]sx?$': 'babel-jest',
     },
     transformIgnorePatterns: [
-        "/node_modules/(?!@octokit/rest)/", // This allows Jest to transform @octokit/rest
+        "/node_modules/(?!@octokit/rest)/",
     ],
     testMatch: ['**/__tests__/**/*.test.js'],
 };

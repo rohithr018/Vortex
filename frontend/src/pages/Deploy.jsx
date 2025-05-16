@@ -71,6 +71,32 @@ const Deploy = () => {
         };
     }, [username, repo]);
 
+    useEffect(() => {
+        const saveDeploymentData = async () => {
+            if (isDeployed && deploymentId) {
+                try {
+                    const deploymentUrl = `https://deployment-build-artifacts-bucket.s3.us-east-1.amazonaws.com/__outputs/${deploymentId}/index.html`;
+                    await axios.post('http://localhost:5000/api/deploy/create', {
+                        deploymentId,
+                        repoName: repo,
+                        branch: selectedBranch,
+                        username,
+                        logs: logs.map(log => ({
+                            message: log.log_message,
+                            level: log.log_level,
+                            timestamp: log.timestamp
+                        })),
+                        url: deploymentUrl
+                    });
+                } catch (error) {
+                    console.error('Failed to save deployment data:', error);
+                }
+            }
+        };
+
+        saveDeploymentData();
+    }, [isDeployed]);
+
     const handleAddEnvVar = () => {
         setEnvVars([...envVars, { key: '', value: '', isEditing: true }]);
         scrollToEnvVarBottom();
@@ -131,7 +157,6 @@ const Deploy = () => {
         setIsDeploying(true);
         setLogs([]);
 
-        // Initial log with unique ID
         const initialLog = {
             log_message: 'Starting deployment process...',
             log_level: 'INFO',
@@ -141,7 +166,7 @@ const Deploy = () => {
         };
         setLogs([initialLog]);
 
-        // Unique deployment ID with timestamp
+
         const deploymentId = `${username}-${repo}-${selectedBranch}`;
         setDeploymentId(deploymentId);
         abortControllerRef.current = new AbortController();
@@ -212,7 +237,7 @@ const Deploy = () => {
                     }
 
                     if (!isCompleted) {
-                        setTimeout(pollLogs, 500); // Poll every 500ms
+                        setTimeout(pollLogs, 500);
                     }
                 } catch (error) {
                     if (!axios.isCancel(error)) {
