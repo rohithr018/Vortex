@@ -125,11 +125,44 @@ const Auth = () => {
             setLocalLoading(false);
         }
     };
+    const titleAnimation = () => (
+        <div className="relative inline-block">
+            {/* Animated background glow */}
+            <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-2xl opacity-30"
+                animate={{
+                    opacity: [0.2, 0.4, 0.2],
+                }}
+                transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                }}
+            />
+
+            {/* Main text */}
+            <h1 className="text-6xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 bg-clip-text text-transparent tracking-tighter relative z-10 animate-gradient-float">
+                Vortex
+            </h1>
+
+            {/* Subtle floating animation */}
+            <motion.div
+                className="absolute -bottom-4 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent"
+                animate={{
+                    opacity: [0.5, 1, 0.5],
+                    x: [-20, 20, -20]
+                }}
+                transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                }}
+            />
+        </div>
+
+    )
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#0d0d0d] p-4">
             <div className="w-full max-w-5xl bg-[#0e0e0e] rounded-3xl shadow-2xl border border-gray-800 overflow-hidden flex flex-col md:flex-row transition-all duration-700" style={{ minHeight: '550px' }}>
-
                 {/* Left Panel: Login or Register */}
                 <div className="w-full md:w-1/2 flex items-center justify-center p-5 text-white bg-[#111111]">
                     <AnimatePresence mode="wait">
@@ -215,16 +248,16 @@ const Auth = () => {
 
                             ) :
                             (
-                                <motion.img
-                                    key="login-img"
+                                <motion.div
+                                    className="relative z-20"
                                     initial={leftVariants.initial}
                                     animate={leftVariants.animate}
                                     exit={rightVariants.exit}
                                     transition={{ duration: 0.75 }}
-                                    src="https://placehold.co/400x400?text=Login"
-                                    alt="Login Illustration"
-                                    className="rounded-lg max-h-100 object-cover shadow-xl border border-gray-700"
-                                />
+                                >
+                                    {titleAnimation()}
+
+                                </motion.div>
                             )
                         }
                     </AnimatePresence>
@@ -372,16 +405,15 @@ const Auth = () => {
                                 </motion.div>
                             ) :
                             (
-                                <motion.img
-                                    key="register-img"
+                                <motion.div
+                                    className="relative z-20"
                                     initial={rightVariants.initial}
                                     animate={rightVariants.animate}
                                     exit={leftVariants.exit}
                                     transition={{ duration: 0.75 }}
-                                    src="https://placehold.co/400x400?text=Register"
-                                    alt="Register Illustration"
-                                    className="rounded-lg max-h-100 object-cover shadow-xl border border-gray-700"
-                                />
+                                >
+                                    {titleAnimation()}
+                                </motion.div>
                             )
                         }
                     </AnimatePresence>

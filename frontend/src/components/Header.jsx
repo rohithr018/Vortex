@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../redux/user/UserSlice';
+import { FiUser } from 'react-icons/fi';
 
 const Header = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -40,8 +41,11 @@ const Header = () => {
     return (
         <header className="bg-[#0d0d0d] px-6 py-4 relative z-50">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
-                <Link to="/" className="text-xl font-bold text-white">
-                    MyApp
+                <Link
+                    to="/"
+                    className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent"
+                >
+                    VORTEX
                 </Link>
 
                 <div className="flex items-center space-x-6 text-gray-300">
@@ -54,11 +58,10 @@ const Header = () => {
                             ref={buttonRef}
                             className="text-white rounded-full flex items-center justify-center w-12 h-12 hover:scale-110 transition-transform duration-300 ease-in-out"
                         >
-                            <img
-                                src="https://placehold.co/40x40?text=P"
-                                alt="Profile"
-                                className="w-12 h-12 rounded-full object-cover transition-transform duration-300 ease-in-out hover:scale-105"
-                            />
+                            <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center transition-transform duration-300 ease-in-out hover:scale-105">
+                                <FiUser className="text-white text-2xl" />
+                            </div>
+
                         </button>
 
                         {/* Dropdown Menu */}
