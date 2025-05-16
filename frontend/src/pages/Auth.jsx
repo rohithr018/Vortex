@@ -4,12 +4,15 @@ import { FiChevronLeft, FiChevronRight, FiLogIn, FiUserPlus, FiEye, FiEyeOff } f
 import { useDispatch, useSelector } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../redux/user/UserSlice';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const Auth = () => {
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const { loading } = useSelector((state) => state.user);
 
     // State management
-    const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullname, setFullname] = useState('');
@@ -20,9 +23,8 @@ const Auth = () => {
     const [localLoading, setLocalLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    const dispatch = useDispatch();
-    const { loading } = useSelector((state) => state.user);
-    const navigate = useNavigate();
+    const mode = searchParams.get('mode');
+    const isLogin = mode !== 'register';
 
     {/*Common classes*/ }
     const inputClass = 'w-full px-4 py-3 rounded-lg bg-black border border-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-400 text-sm';
@@ -45,14 +47,14 @@ const Auth = () => {
     };
     {/*Login <-> Register*/ }
     const toggleMode = () => {
-        setIsLogin((prev) => !prev);
+        const newMode = isLogin ? 'register' : 'login';
+        navigate(`/auth?mode=${newMode}`);
         resetForm();
     };
 
     {/*Validate Input feilds*/ }
     const validateEmail = (email) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
     const validatePassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,14}$/.test(password);
-    const validateGithubProfile = (url) => /^(https:\/\/github\.com\/[a-zA-Z0-9_-]+)$/.test(url);
 
     const resetForm = () => {
         setEmail('');
@@ -62,6 +64,7 @@ const Auth = () => {
         setGithubProfile('');
         setError(null);
         setSuccess(null);
+        setShowPassword(false);
     };
 
     {/*Login Function*/ }

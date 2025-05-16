@@ -157,7 +157,6 @@ const Deploy = () => {
         setIsDeploying(true);
         setLogs([]);
 
-        // Initial log with unique ID
         const initialLog = {
             log_message: 'Starting deployment process...',
             log_level: 'INFO',
@@ -167,7 +166,7 @@ const Deploy = () => {
         };
         setLogs([initialLog]);
 
-        // Unique deployment ID with timestamp
+
         const deploymentId = `${username}-${repo}-${selectedBranch}`;
         setDeploymentId(deploymentId);
         abortControllerRef.current = new AbortController();
@@ -238,7 +237,7 @@ const Deploy = () => {
                     }
 
                     if (!isCompleted) {
-                        setTimeout(pollLogs, 500); // Poll every 500ms
+                        setTimeout(pollLogs, 500);
                     }
                 } catch (error) {
                     if (!axios.isCancel(error)) {

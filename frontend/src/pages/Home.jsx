@@ -92,7 +92,6 @@ const Home = () => {
         try {
             const response = await axios.get(`https://api.github.com/users/${owner}`);
             if (response.status === 200) {
-                // Navigate to /deploy/username/repo with extracted username and repo
                 navigate(`/deploy/${owner}/${repo}`);
             }
         } catch (err) {

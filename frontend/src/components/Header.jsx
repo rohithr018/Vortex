@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../redux/user/UserSlice'; // Import logout action
+import { logout } from '../redux/user/UserSlice';
 
 const Header = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -11,15 +11,15 @@ const Header = () => {
     const { user } = useSelector((state) => state.user);
 
     const dispatch = useDispatch();
-    const navigate = useNavigate(); // useNavigate hook for navigation
+    const navigate = useNavigate();
 
     const toggleDropdown = () => {
         setIsDropdownOpen((prev) => !prev);
     };
 
     const handleLogout = () => {
-        dispatch(logout()); // Dispatch logout action to clear user state
-        navigate('/'); // Redirect to login page after logout
+        dispatch(logout());
+        navigate('/');
     };
 
     console.log(user)
@@ -38,7 +38,7 @@ const Header = () => {
     }, []);
 
     return (
-        <header className="bg-black px-6 py-4 relative z-50">
+        <header className="bg-[#0d0d0d] px-6 py-4 relative z-50">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
                 <Link to="/" className="text-xl font-bold text-white">
                     MyApp
@@ -74,7 +74,7 @@ const Header = () => {
                                     </div>
 
                                     <Link to="/dashboard" className="mt-4 text-sm text-gray-400 hover:text-white text-center">
-                                        Dashboard
+                                        Deployments
                                     </Link>
 
                                     <Link to="/account-settings" className="mt-2 text-sm text-gray-400 hover:text-white text-center">
