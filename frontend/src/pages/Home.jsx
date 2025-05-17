@@ -143,7 +143,9 @@ const Home = () => {
                                         >
                                             <div className="text-white font-medium text-sm truncate">{repo.name}</div>
                                             {deploymentStatus[repo.name] ? (
-                                                <span className="text-green-500 text-sm px-3 py-1.5">
+                                                <span
+                                                    onClick={() => navigate('/dashboard')}
+                                                    className="text-green-500 text-sm px-3 py-1.5 cursor-pointer">
                                                     Deployed
                                                 </span>
                                             ) : (
