@@ -28,7 +28,7 @@ const AccountSettings = () => {
             if (!username) return;
 
             try {
-                const res = await axios.get(`http://localhost:5000/api/user/getuser/${username}`);
+                const res = await axios.get(`/api/user/getuser/${username}`);
                 const data = res.data;
 
                 const newForm = {
@@ -80,7 +80,7 @@ const AccountSettings = () => {
             const { fullname, email, password } = formData;
 
             const res = await axios.put(
-                `http://localhost:5000/api/user/updateuser/${username}`,
+                `/api/user/updateuser/${username}`,
                 { fullname, email, password }
             );
 

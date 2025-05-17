@@ -9,22 +9,10 @@ export const deployProject = async (req, res) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        const getLocalIP = () => {
-            try {
-                return execSync("hostname -I | awk '{print $1}'").toString().trim();
-            } catch {
-                return null;
-            }
-        };
-
-        const localIP = getLocalIP();
-        if (!localIP) {
-            return res.status(500).json({ error: 'Could not retrieve local IP' });
-        }
-
-        const kafkaBroker = `${localIP}:29092`;
-        const containerName = `builder-${deploymentId}`;
+        const kafkaBroker = 'kafka-broker:19092';
+        const containerName = `${deploymentId}`;
         try {
+            execSync(`docker inspect ${containerName}`);
             execSync(`docker rm -f ${containerName}`);
         } catch {
         }
@@ -32,6 +20,7 @@ export const deployProject = async (req, res) => {
         const dockerRunCommand = [
             `docker run -d`,
             `--name ${containerName}`,
+            `--network deployment`,
             `-e REPO=${repo}`,
             `-e BRANCH=${branch}`,
             `-e USERNAME=${username}`,

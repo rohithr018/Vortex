@@ -23,7 +23,7 @@ const Header = () => {
         navigate('/');
     };
 
-    console.log(user)
+    // console.log(user)
     useEffect(() => {
         function handleClickOutside(event) {
             if (

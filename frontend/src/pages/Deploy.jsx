@@ -41,7 +41,7 @@ const Deploy = () => {
     useEffect(() => {
         const fetchBranches = async () => {
             try {
-                const response = await axios.get(`http://localhost:5000/api/github/branches/${username}/${repo}`);
+                const response = await axios.get(`/api/github/branches/${username}/${repo}`);
                 const branchList = Array.isArray(response.data)
                     ? response.data
                     : Array.isArray(response.data.branches)
@@ -76,7 +76,7 @@ const Deploy = () => {
             if (isDeployed && deploymentId) {
                 try {
                     const deploymentUrl = `https://deployment-build-artifacts-bucket.s3.us-east-1.amazonaws.com/__outputs/${deploymentId}/index.html`;
-                    await axios.post('http://localhost:5000/api/deploy/create', {
+                    await axios.post('/api/deploy/create', {
                         deploymentId,
                         repoName: repo,
                         branch: selectedBranch,
@@ -175,7 +175,7 @@ const Deploy = () => {
         let lastReceivedLogUUID = initialLog.log_uuid;
 
         try {
-            await axios.post('http://localhost:5000/api/deploy/start', {
+            await axios.post('/api/deploy/start', {
                 repo,
                 branch: selectedBranch,
                 username,
@@ -189,7 +189,7 @@ const Deploy = () => {
                 if (isCompleted) return;
 
                 try {
-                    const response = await axios.get(`http://localhost:5000/api/logs/${deploymentId}`, {
+                    const response = await axios.get(`/api/logs/${deploymentId}`, {
                         signal: abortControllerRef.current.signal,
                         params: {
                             since: lastReceivedLogUUID

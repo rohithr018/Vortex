@@ -24,7 +24,7 @@ const Home = () => {
             setError("");
             try {
                 // Fetch user repositories
-                const reposResponse = await axios.post("http://localhost:5000/api/github/repos", {
+                const reposResponse = await axios.post("/api/github/repos", {
                     githubProfile: username
                 });
                 const repos = reposResponse.data;
@@ -34,7 +34,7 @@ const Home = () => {
                 const statusPromises = repos.map(async (repo) => {
                     try {
                         const res = await axios.get(
-                            `http://localhost:5000/api/deploy/get?repoName=${repo.name}&username=${username}`
+                            `/api/deploy/get?repoName=${repo.name}&username=${username}`
                         );
                         return { repoName: repo.name, deployed: res.data.exists === true };
                     } catch (error) {

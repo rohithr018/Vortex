@@ -76,7 +76,7 @@ const Auth = () => {
         setError(null);
 
         try {
-            const { data } = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+            const { data } = await axios.post('/api/auth/login', { email, password });
 
             dispatch(loginSuccess({ token: data.token, user: data.user }));
 
@@ -109,7 +109,7 @@ const Auth = () => {
         try {
             setLocalLoading(true);
 
-            const { data } = await axios.post('http://localhost:5000/api/auth/register', { fullname, username, email, password, githubProfile });
+            const { data } = await axios.post('/api/auth/register', { fullname, username, email, password, githubProfile });
 
             setSuccess(`${data.message}, Redirecting to Login`);
 

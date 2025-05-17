@@ -11,7 +11,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchDeployments = async () => {
             try {
-                const res = await axios.get(`http://localhost:5000/api/deploy/getdeploy?user=${username}`);
+                const res = await axios.get(`/api/deploy/getdeploy?user=${username}`);
                 setDeployments(res.data);
             } catch (err) {
                 console.error("Failed to fetch deployments", err);

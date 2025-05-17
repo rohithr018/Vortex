@@ -30,7 +30,7 @@ services:
       KAFKA_NODE_ID: 2
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_LISTENERS: 'CONTROLLER://0.0.0.0:9094,PLAINTEXT://0.0.0.0:19092,PLAINTEXT_HOST://0.0.0.0:9092'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka-broker:19092,PLAINTEXT_HOST://192.168.165.193:29092'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka-broker:19092,PLAINTEXT_HOST://localhost:29092'
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
@@ -115,10 +115,31 @@ services:
     depends_on:
       - kafka-broker
     restart: unless-stopped
-
+  
+  application:
+    image: rohith1809/vortex:latest
+    container_name: vortex-app
+    depends_on:
+      kafka-broker:
+        condition: service_healthy
+      clickhouse:
+        condition: service_started
+    ports:
+      - "3000:3000"
+      - "5000:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - deployment
+    restart: 
+      unless-stopped
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
 volumes:
   controller_data:
   broker_data:
 
 networks:
   deployment:
+    name: deployment
+    driver: bridge

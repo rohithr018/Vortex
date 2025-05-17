@@ -1,7 +1,7 @@
 import { createClient } from '@clickhouse/client';
 
 const client = createClient({
-    url: 'http://localhost:8123',
+    url: 'http://clickhouse:8123',
     user: 'default',
     password: 'default',
     database: 'logs',
