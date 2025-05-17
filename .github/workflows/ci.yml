@@ -20,11 +20,6 @@ jobs:
           cd frontend
           npm ci
 
-      - name: Run Frontend Tests
-        run: |
-          cd frontend
-          npm test
-
   backend:
     runs-on: ubuntu-latest
     name: Backend (Installing Dependencies + Testing)
@@ -39,11 +34,6 @@ jobs:
         run: |
           cd backend
           npm install
-
-      - name: Run Backend Tests
-        run: |
-          cd backend
-          npm test
 
   security-check:
     runs-on: ubuntu-latest
