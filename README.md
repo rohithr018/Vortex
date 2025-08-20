@@ -19,22 +19,18 @@ It features **Node.js microservices**, a **Kafka-based log pipeline**, and a **m
   <img src="./Architecture.png" alt="Vortex Architecture" width="800"/>
 </p>
 
-**Overview:**
-
-1. **Frontend** (React + Vite) → Communicates with the backend via REST APIs.
-2. **Backend** (Node.js + Express) → Handles authentication, deployments, GitHub integration, and log streaming.
-3. **Build Server** → Docker-based isolated environment for compiling and delivering static files and project assets.
-4. **Kafka** → High-throughput log pipeline for real-time log streaming.
-5. **MongoDB** → Stores user profiles, deployment data, and metadata.
-6. **ClickHouse** → Consumes logs from Kafka for high-efficiency log storage and fast querying.
-
 ---
 
-## ⚙️ Tech Stack
+## 📖 Documentation
 
-**Frontend:** React, Vite, Redux  
-**Backend:** Node.js, Express
-**Messaging & Logs:** Apache Kafka  
-**Databases:** MongoDB, ClickHouse  
-**Builds:** Docker, Shell scripts  
-**CI/CD:** GitHub Actions
+For detailed architecture, workflows, and implementation details, please check out the [docs](./docs/) folder:
+
+- [User Authentication & Management](./docs/01_user_authentication___management_.md)
+- [GitHub Integration](./docs/02_github_integration_.md)
+- [Project Deployment Lifecycle](./docs/03_project_deployment_lifecycle_.md)
+- [Real-time Build Log Pipeline](./docs/04_real_time_build_log_pipeline_.md)
+- [Frontend State Management](./docs/05_frontend_state_management_.md)
+- [Service Orchestration](./docs/06_service_orchestration_.md)
+- [Persistent Data Storage](./docs/07_persistent_data_storage_.md)
+
+---
