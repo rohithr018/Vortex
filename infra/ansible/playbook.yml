@@ -1,0 +1,57 @@
+- hosts: kafka_nodes
+  become: true
+  tasks:
+    # Install prerequisites
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - git
+          - docker.io
+          - docker-compose
+        state: present
+
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    # Clone repo
+    - name: Clone vortex repo
+      git:
+        repo: "https://github.com/rohithr018/rohithr018-vortex.git"
+        dest: /opt/vortex
+        version: main
+
+    # Start Kafka
+    - name: Start Kafka services with Docker Compose
+      shell: |
+        cd /opt/vortex/services
+        docker compose up -d
+      args:
+        chdir: /opt/vortex/services
+
+    # Create Kafka topic
+    - name: Make create-topic.sh executable
+      file:
+        path: /opt/vortex/services/create-topic.sh
+        mode: "0755"
+
+    - name: Run create-topic.sh
+      shell: |
+        cd /opt/vortex/services && ./create-topic.sh
+
+    # Run Benchmark
+    - name: Make benchmark-kafka.sh executable
+      file:
+        path: /opt/vortex/benchmark-kafka.sh
+        mode: "0755"
+
+    - name: Run benchmark script
+      shell: |
+        cd /opt/vortex && ./benchmark-kafka.sh
