@@ -1,65 +1,88 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  kafka-controller:
+  kafka-1:
     image: apache/kafka:3.8.1
-    container_name: kafka-controller
+    container_name: kafka-1
+    ports:
+      - "19092:19092"
     environment:
       KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: controller
-      KAFKA_LISTENERS: CONTROLLER://0.0.0.0:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: "CONTROLLER://0.0.0.0:9093,PLAINTEXT://0.0.0.0:19092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-1:19092"
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller:9093,2@kafka-broker:9094
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
     volumes:
-      - controller_data:/var/lib/kafka/data
+      - kafka1_data:/var/lib/kafka/data
     networks:
       - deployment
     restart: unless-stopped
 
-  kafka-broker:
+  kafka-2:
     image: apache/kafka:3.8.1
-    container_name: kafka-broker
+    container_name: kafka-2
     ports:
-      - "29092:9092"  # PLAINTEXT_HOST (for host machine)
+      - "29092:19092"
     environment:
       KAFKA_NODE_ID: 2
-      KAFKA_PROCESS_ROLES: "broker,controller"
-      KAFKA_LISTENERS: 'CONTROLLER://0.0.0.0:9094,PLAINTEXT://0.0.0.0:19092,PLAINTEXT_HOST://0.0.0.0:9092'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka-broker:19092,PLAINTEXT_HOST://localhost:29092'
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: "CONTROLLER://0.0.0.0:9093,PLAINTEXT://0.0.0.0:19092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-2:19092"
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller:9093,2@kafka-broker:9094
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
     volumes:
-      - broker_data:/var/lib/kafka/data
-    depends_on:
-      - kafka-controller
+      - kafka2_data:/var/lib/kafka/data
     networks:
       - deployment
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/19092'"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
+    restart: unless-stopped
+
+  kafka-3:
+    image: apache/kafka:3.8.1
+    container_name: kafka-3
+    ports:
+      - "39092:19092"
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: "CONTROLLER://0.0.0.0:9093,PLAINTEXT://0.0.0.0:19092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-3:19092"
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    volumes:
+      - kafka3_data:/var/lib/kafka/data
+    networks:
+      - deployment
     restart: unless-stopped
 
   topic-init:
     image: apache/kafka:3.8.1
     container_name: kafka-topic-init
     depends_on:
-      kafka-broker:
-        condition: service_healthy
+      - kafka-1
+      - kafka-2
+      - kafka-3
     volumes:
       - ./create-topic.sh:/create-topic.sh:ro
     entrypoint: ["/bin/bash", "/create-topic.sh"]
@@ -80,18 +103,15 @@ services:
       CONFIG_FILEPATH: /tmp/config.yml
       CONSOLE_CONFIG_FILE: >
         kafka:
-          brokers: ["kafka-broker:19092"]
+          brokers: ["kafka-1:19092","kafka-2:19092","kafka-3:19092"]
           schemaRegistry:
             enabled: false
-        redpanda:
-          adminApi:
-            enabled: false
-            urls: ["http://kafka-broker:9644"]
     networks:
       - deployment
     depends_on:
-      kafka-broker:
-        condition: service_healthy
+      - kafka-1
+      - kafka-2
+      - kafka-3
     restart: always
 
   clickhouse:
@@ -112,18 +132,16 @@ services:
         hard: 262144
     networks:
       - deployment
-    depends_on:
-      - kafka-broker
     restart: unless-stopped
-  
+
   application:
     image: rohith1809/vortex:latest
     container_name: vortex-app
     depends_on:
-      kafka-broker:
-        condition: service_healthy
-      clickhouse:
-        condition: service_started
+      - kafka-1
+      - kafka-2
+      - kafka-3
+      - clickhouse
     ports:
       - "3000:3000"
       - "5000:5000"
@@ -131,13 +149,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - deployment
-    restart: 
-      unless-stopped
+    restart: unless-stopped
     environment:
       - DOCKER_HOST=unix:///var/run/docker.sock
+
 volumes:
-  controller_data:
-  broker_data:
+  kafka1_data:
+  kafka2_data:
+  kafka3_data:
 
 networks:
   deployment:
