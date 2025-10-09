@@ -2,33 +2,39 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# Security group for Kafka cluster
+# Security group
 resource "aws_security_group" "kafka_sg" {
-  name        = "kafka-sg"
-  description = "Allow SSH and Kafka traffic"
+  name        = "kafka-single-node-sg"
+  description = "Allow SSH and Kafka ports"
 
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # allow SSH (replace with your IP for more security)
+    cidr_blocks = ["0.0.0.0/0"] # Replace with your IP for security
   }
 
   ingress {
     from_port   = 9092
-    to_port     = 9092
+    to_port     = 9096
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Kafka external client
+    cidr_blocks = ["0.0.0.0/0"] # Kafka client & inter-broker ports
   }
 
   ingress {
-    from_port   = 9093
-    to_port     = 9093
+    from_port   = 8080
+    to_port     = 8080
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Kafka controller quorum
+    cidr_blocks = ["0.0.0.0/0"] # Kafka console
   }
 
-  # allow everything outbound
+  ingress {
+    from_port   = 8123
+    to_port     = 9000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # ClickHouse
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -37,21 +43,18 @@ resource "aws_security_group" "kafka_sg" {
   }
 }
 
-# EC2 instances (Kafka nodes)
-resource "aws_instance" "kafka_nodes" {
-  count         = 3
+# Single EC2 instance
+resource "aws_instance" "kafka_node" {
   ami           = "ami-0c55b159cbfafe1f0" # Ubuntu 20.04
-  instance_type = "t2.medium"
+  instance_type = "t3.large"
   key_name      = "<KEY_PAIR_NAME>"       # replace with your key pair
-
   vpc_security_group_ids = [aws_security_group.kafka_sg.id]
 
   tags = {
-    Name = "kafka-node-${count.index + 1}"
+    Name = "kafka-single-node"
   }
 }
 
-# Output public IPs of nodes
-output "kafka_ips" {
-  value = [for instance in aws_instance.kafka_nodes : instance.public_ip]
+output "ec2_public_ip" {
+  value = aws_instance.kafka_node.public_ip
 }

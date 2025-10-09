@@ -1,17 +1,24 @@
 #!/bin/bash
 set -e
 
-# Terraform
+cd "$(dirname "$0")"
+
+echo "🚀 Applying Terraform..."
+cd terraform
 terraform init
 terraform apply -auto-approve
 
-# Generate inventory.ini for Ansible
-echo "[kafka_nodes]" > inventory.ini
-terraform output -json kafka_ips | jq -r '.[]' | nl -w1 -s' ' | \
-  awk '{print "node"$1" ansible_host="$2" ansible_user=ubuntu"}' >> inventory.ini
+echo "🌐 Extracting public IPs..."
+IPS=$(terraform output -json kafka_ips | jq -r '.[]')
+cd ..
 
-echo "Generated Ansible inventory:"
-cat inventory.ini
+echo "[kafka_nodes]" > ansible/inventory.ini
+i=1
+for ip in $IPS; do
+  echo "node${i} ansible_host=${ip} ansible_user=ubuntu" >> ansible/inventory.ini
+  ((i++))
+done
 
-# Run Ansible
+echo "🧩 Running Ansible playbook..."
+cd ansible
 ansible-playbook -i inventory.ini playbook.yml
